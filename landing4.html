@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>OrbitView</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23111'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='white' stroke-width='2'/%3E%3Cellipse cx='16' cy='16' rx='10' ry='3.8' fill='none' stroke='white' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='white'/%3E%3C/svg%3E"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap');
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    body { background:#000; color:#fff; font-family:'JetBrains Mono',monospace; height:100vh; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%,rgba(255,255,255,.7) 0%,transparent 100%),
+        radial-gradient(1px 1px at 30% 65%,rgba(255,255,255,.5) 0%,transparent 100%),
+        radial-gradient(1px 1px at 50% 10%,rgba(255,255,255,.6) 0%,transparent 100%),
+        radial-gradient(1px 1px at 70% 80%,rgba(255,255,255,.4) 0%,transparent 100%),
+        radial-gradient(1px 1px at 85% 35%,rgba(255,255,255,.7) 0%,transparent 100%),
+        radial-gradient(1px 1px at 20% 90%,rgba(255,255,255,.5) 0%,transparent 100%),
+        radial-gradient(1px 1px at 60% 50%,rgba(255,255,255,.3) 0%,transparent 100%),
+        radial-gradient(1px 1px at 40% 40%,rgba(255,255,255,.6) 0%,transparent 100%),
+        radial-gradient(1px 1px at 90% 60%,rgba(255,255,255,.5) 0%,transparent 100%),
+        radial-gradient(1px 1px at 15% 50%,rgba(255,255,255,.4) 0%,transparent 100%),
+        radial-gradient(1px 1px at 75% 15%,rgba(255,255,255,.6) 0%,transparent 100%),
+        radial-gradient(1px 1px at 55% 75%,rgba(255,255,255,.3) 0%,transparent 100%),
+        radial-gradient(2px 2px at 25% 30%,rgba(255,255,255,.3) 0%,transparent 100%),
+        radial-gradient(2px 2px at 80% 70%,rgba(255,255,255,.2) 0%,transparent 100%),
+        radial-gradient(2px 2px at 45% 85%,rgba(255,255,255,.25) 0%,transparent 100%);
+    }
+    body::after { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px); }
+
+    .wrapper { position:relative; z-index:1; text-align:center; width:100%; max-width:1100px; padding:30px 20px; }
+
+    .logo { font-family:'Orbitron',sans-serif; font-size:44px; letter-spacing:12px; color:#fff; margin-bottom:8px; }
+    .logo-sub { font-size:9px; letter-spacing:4px; color:#444; margin-bottom:8px; }
+    .divider { width:1px; height:44px; background:linear-gradient(to bottom,transparent,rgba(255,255,255,.3),transparent); margin:0 auto 46px; }
+
+    .cards { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
+
+    .card {
+      width:230px; padding:28px 22px;
+      background:rgba(0,0,0,.85); border:1px solid rgba(255,255,255,.1);
+      cursor:pointer; text-decoration:none; color:#fff;
+      transition:.3s; display:block; text-align:left; position:relative; overflow:hidden;
+    }
+    .card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%); opacity:0; transition:.3s; }
+    .card:hover { transform:translateY(-4px); }
+    .card:hover::before { opacity:1; }
+    .card:hover .card-arrow { opacity:1; transform:translateX(4px); }
+
+    .card-icon  { font-size:26px; margin-bottom:16px; display:block; }
+    .card-tag   { font-size:7px; letter-spacing:3px; margin-bottom:9px; padding:3px 8px; display:inline-block; border:1px solid; }
+    .card-title { font-family:'Orbitron',sans-serif; font-size:15px; letter-spacing:4px; margin-bottom:9px; }
+    .card-desc  { font-size:8px; line-height:1.9; color:#555; letter-spacing:1px; }
+    .card-arrow { position:absolute; bottom:22px; right:22px; font-size:15px; opacity:.25; transition:.3s; }
+
+    /* SAT — blue */
+    .card-sat { border-color:rgba(68,136,255,.2); }
+    .card-sat .card-tag   { color:#4488ff; border-color:rgba(68,136,255,.35); }
+    .card-sat .card-title { color:#6aa8ff; }
+    .card-sat:hover { border-color:rgba(68,136,255,.5); box-shadow:0 16px 44px rgba(68,136,255,.1); }
+    .card-sat .card-arrow { color:#4488ff; }
+
+    /* ATM — orange */
+    .card-atm { border-color:rgba(255,102,51,.2); }
+    .card-atm .card-tag   { color:#ff6633; border-color:rgba(255,102,51,.35); }
+    .card-atm .card-title { color:#ff9966; }
+    .card-atm:hover { border-color:rgba(255,102,51,.5); box-shadow:0 16px 44px rgba(255,60,0,.1); }
+    .card-atm .card-arrow { color:#ff6633; }
+
+    /* AST — green */
+    .card-ast { border-color:rgba(51,255,136,.2); }
+    .card-ast .card-tag   { color:#33ff88; border-color:rgba(51,255,136,.35); }
+    .card-ast .card-title { color:#66ffaa; }
+    .card-ast:hover { border-color:rgba(51,255,136,.5); box-shadow:0 16px 44px rgba(51,255,100,.08); }
+    .card-ast .card-arrow { color:#33ff88; }
+
+    /* WX — yellow */
+    .card-wx { border-color:rgba(255,204,0,.2); }
+    .card-wx .card-tag   { color:#ffcc00; border-color:rgba(255,204,0,.35); }
+    .card-wx .card-title { color:#ffdd55; }
+    .card-wx:hover { border-color:rgba(255,204,0,.5); box-shadow:0 16px 44px rgba(255,200,0,.09); }
+    .card-wx .card-arrow { color:#ffcc00; }
+
+    .status-row { margin-top:40px; font-size:8px; letter-spacing:2px; color:#2a2a2a; }
+    .status-dot { display:inline-block; width:5px; height:5px; border-radius:50%; background:#2a2a2a; margin-right:6px; vertical-align:middle; animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+    .glow-link {
+    margin-bottom: 20px;
+  /* Typography */
+  font-family: 'Orbitron', sans-serif;
+  color: #ffffff;
+  text-decoration: none;
+  letter-spacing: 2px;
+  font-weight: bold;
+  
+  /* Smooth transition for the glow */
+  transition: all 0.3s ease-in-out;
+  
+  /* Optional: initial very subtle glow to make it look "active" */
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+.glow-link:hover {
+  color: #ffffff; /* Keep it white or shift to a slight off-white */
+  
+  /* The Glow Effect */
+  /* Layering multiple shadows creates a more intense, realistic "neon" bloom */
+  text-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.8),
+    0 0 20px rgba(255, 255, 255, 0.5),
+    0 0 30px rgba(255, 255, 255, 0.3);
+    
+  /* Optional: slight scale up to add "punch" */
+  transform: scale(1.05);
+}
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="logo">ORBITVIEW</div>
+  <div class="logo-sub">SPACE SITUATIONAL AWARENESS TERMINAL</div>
+  <a href="features3.html" class="glow-link">[ FEATURES ]</a>
+
+  <div class="divider"></div>
+
+  <div class="cards">
+
+    <a href="sv1.html" class="card card-sat">
+      <span class="card-icon">🛰</span>
+      <span class="card-tag">MODULE 01 · SAT</span>
+      <div class="card-title">SATELLITE</div>
+      <div class="card-desc">Live tracking of 72 active spacecraft via NASA SSC. Real-time LEO, MEO and GEO orbital positions with trail history.</div>
+      <span class="card-arrow">→</span>
+    </a>
+
+    <a href="av1.html" class="card card-atm">
+      <span class="card-icon">☄️</span>
+      <span class="card-tag">MODULE 02 · ATM</span>
+      <div class="card-title">ATMOSPHERE</div>
+      <div class="card-desc">Fireball and bolide impact events from NASA JPL CNEOS. Historical atmospheric entry data classified by impact energy.</div>
+      <span class="card-arrow">→</span>
+    </a>
+
+    <a href="mv2.html" class="card card-ast">
+      <span class="card-icon">🪨</span>
+      <span class="card-tag">MODULE 03 · AST</span>
+      <div class="card-title">ASTEROID</div>
+      <div class="card-desc">Near-Earth objects approaching within 7 days via NASA NeoWs. Size classification with hazard assessment and miss distance.</div>
+      <span class="card-arrow">→</span>
+    </a>
+
+    <a href="wv5.html" class="card card-wx">
+      <span class="card-icon">☀️</span>
+      <span class="card-tag">MODULE 04 · WX</span>
+      <div class="card-title">SPACE WX</div>
+      <div class="card-desc">Solar flare events from NASA DONKI. Last 30 days of X, M, and C-class flares with heliographic source positions.</div>
+      <span class="card-arrow">→</span>
+    </a>
+
+  </div>
+
+  <div class="status-row">
+    <span class="status-dot"></span>
+    SERVER REQUIRED &nbsp;·&nbsp; RUN <span style="color:#3a3a3a">node server.js</span> BEFORE LAUNCHING
+  </div>
+
+</div>
+</body>
+</html>

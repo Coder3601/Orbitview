@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>OrbitView // Intelligence</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23111'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='white' stroke-width='2'/%3E%3Cellipse cx='16' cy='16' rx='10' ry='3.8' fill='none' stroke='white' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='white'/%3E%3C/svg%3E"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap');
+        
+        :root {
+            --accent-sat: #4488ff;
+            --accent-atm: #ff6633;
+            --accent-ast: #33ff88;
+            --accent-wx: #ffcc00; /* New WX Color */
+            --bg-dark: #000;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Base Reset */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Star Field Background */
+        .stars {
+            position: fixed; inset: 0; z-index: -1;
+            background-image: 
+                radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.7) 0%, transparent 100%),
+                radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
+                radial-gradient(1px 1px at 85% 35%, rgba(255,255,255,0.7) 0%, transparent 100%),
+                radial-gradient(2px 2px at 25% 30%, rgba(255,255,255,0.3) 0%, transparent 100%);
+        }
+
+        /* Typography */
+        h1, h2, h3 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; letter-spacing: 4px; }
+        .mono-label { font-size: 10px; color: #444; letter-spacing: 2px; }
+
+        /* Layout */
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+        section { padding: 100px 0; border-bottom: 1px solid var(--border); }
+
+        /* Navigation */
+        nav {
+            position: fixed; top: 0; width: 100%; z-index: 100;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 0;
+        }
+        nav .container { display: flex; justify-content: space-between; align-items: center; }
+        
+        .nav-logo { 
+            font-family: 'Orbitron'; font-size: 14px; letter-spacing: 4px; 
+            color: #ffffff; text-decoration: none; 
+        }
+
+        nav a { color: #888; text-decoration: none; font-size: 10px; letter-spacing: 2px; transition: 0.3s; margin-left: 30px; }
+        nav a:hover { color: #fff; }
+
+        /* THE WHITE TERMINAL LINK (BOX REMOVED) */
+        nav a.terminal-link { 
+            color: #ffffff; 
+            padding: 6px 0;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        nav a.terminal-link:hover {
+            color: #ffffff;
+            text-shadow: 0 0 12px rgba(255,255,255,0.8);
+            background: transparent;
+        }
+
+        /* Hero */
+        .hero { text-align: center; padding-top: 180px; padding-bottom: 100px; }
+        .hero h1 { font-size: 48px; margin-bottom: 15px; color: #fff; }
+        .hero p { font-size: 12px; color: #666; max-width: 600px; margin: 0 auto; }
+
+        /* Feature Sections */
+        .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+        .feature-content h2 { font-size: 24px; margin-bottom: 20px; }
+        .feature-content p { font-size: 14px; color: #aaa; margin-bottom: 30px; }
+        
+        .tag { 
+            display: inline-block; padding: 4px 12px; font-size: 9px; 
+            border: 1px solid; margin-bottom: 15px; font-weight: bold;
+        }
+
+        .visual-demo {
+            height: 300px; border: 1px solid var(--border);
+            background: var(--glass); position: relative;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Specific Colors */
+        .sat-theme h2, .sat-theme .tag { color: var(--accent-sat); border-color: rgba(68,136,255,0.3); }
+        .atm-theme h2, .atm-theme .tag { color: var(--accent-atm); border-color: rgba(255,102,51,0.3); }
+        .ast-theme h2, .ast-theme .tag { color: var(--accent-ast); border-color: rgba(51,255,136,0.3); }
+        .wx-theme h2, .wx-theme .tag { color: var(--accent-wx); border-color: rgba(255,204,0,0.3); }
+
+        /* Feature List */
+        ul { list-style: none; }
+        li { font-size: 11px; margin-bottom: 12px; display: flex; align-items: center; }
+        li::before { content: '>'; margin-right: 15px; color: inherit; opacity: 0.5; }
+
+        footer { padding: 60px 0; text-align: center; color: #222; font-size: 9px; letter-spacing: 3px; }
+
+        @media (max-width: 768px) {
+            .feature-grid { grid-template-columns: 1fr; gap: 40px; }
+            .hero h1 { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="stars"></div>
+
+<nav>
+    <div class="container">
+        <a href="#" class="nav-logo">ORBITVIEW</a>
+        <div>
+            <a href="#sat">SATELLITE</a>
+            <a href="#atm">ATMOSPHERE</a>
+            <a href="#ast">ASTEROID</a>
+            <a href="#wx">WEATHER</a>
+            <a href="landing4.html" class="terminal-link">[ TERMINAL ]</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    
+    <header class="hero">
+        <div class="mono-label">SYSTEM CAPABILITIES OVERVIEW</div>
+        <h1>SPACE SITUATIONAL AWARENESS</h1>
+        <p>A unified interface for monitoring low-earth objects, atmospheric entry events, and near-earth asteroid trajectories.</p>
+    </header>
+
+    <section id="sat" class="sat-theme">
+        <div class="feature-grid">
+            <div class="feature-content">
+                <span class="tag">MODULE 01 // SSA-TRACK</span>
+                <h2>SATELLITE TRACKING</h2>
+                <p>Monitor the current orbital state of 70+ high-priority spacecraft. Data is processed through NASA SSC (Satellite Situation Center) to provide precision 3D positioning.</p>
+                <ul>
+                    <li>Real-time Cartesian mapping to CesiumJS 3D Globe</li>
+                    <li>Orbital classification: LEO, MEO, and GEO/HEO</li>
+                    <li>Interactive data terminal for altitude and lat/lon metrics</li>
+                    <li>Historical orbital trails (Path persistence)</li>
+                </ul>
+            </div>
+            <div class="visual-demo">
+                <div style="width: 100px; height: 100px; border: 1px dashed var(--accent-sat); border-radius: 50%; animation: spin 10s linear infinite;"></div>
+                <div style="position: absolute; color: var(--accent-sat); font-size: 10px;">[ TRACKING_ACTIVE ]</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="atm" class="atm-theme">
+        <div class="feature-grid">
+            <div class="visual-demo" style="order: -1;">
+                <div style="width: 2px; height: 150px; background: linear-gradient(to top, var(--accent-atm), transparent); transform: rotate(45deg);"></div>
+                <div style="position: absolute; color: var(--accent-atm); font-size: 10px; bottom: 40px;">[ IMPACT_DETECTION ]</div>
+            </div>
+            <div class="feature-content">
+                <span class="tag">MODULE 02 // CNEOS-ENTRY</span>
+                <h2>ATMOSPHERIC EVENTS</h2>
+                <p>Visualizing fireball and bolide data from the Center for Near-Earth Object Studies. This module maps atmospheric impacts by kinetic energy and altitude.</p>
+                <ul>
+                    <li>Impact energy heat-mapping</li>
+                    <li>Velocity at peak brightness tracking</li>
+                    <li>Historical entry database via NASA JPL API</li>
+                    <li>Geospatial impact distribution analysis</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="ast" class="ast-theme">
+        <div class="feature-grid">
+            <div class="feature-content">
+                <span class="tag">MODULE 03 // NEOWS-CLOSE</span>
+                <h2>ASTEROID PROXIMITY</h2>
+                <p>Near-Earth Object observation system based on the NeoWs (Near Earth Object Web Service). Tracks asteroids approaching earth within a 7-day window.</p>
+                <ul>
+                    <li>Hazardous classification (PHA Assessment)</li>
+                    <li>Relative velocity and Miss-Distance metrics</li>
+                    <li>Estimated diameter (min/max meters) computation</li>
+                    <li>Approach timestamping and countdown sequences</li>
+                </ul>
+            </div>
+            <div class="visual-demo">
+                <div style="width: 150px; height: 2px; background: rgba(255,255,255,0.1);"></div>
+                <div style="width: 20px; height: 20px; background: var(--accent-ast); border-radius: 50%; position: absolute; left: 30%; filter: blur(5px);"></div>
+                <div style="position: absolute; color: var(--accent-ast); font-size: 10px; top: 40px;">[ PROXIMITY_SCAN ]</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="wx" class="wx-theme">
+        <div class="feature-grid">
+            <div class="visual-demo" style="order: -1;">
+                <div style="width: 80px; height: 80px; background: radial-gradient(circle, var(--accent-wx) 0%, transparent 70%); border-radius: 50%; animation: pulse 2s infinite ease-in-out;"></div>
+                <div style="position: absolute; color: var(--accent-wx); font-size: 10px; bottom: 40px;">[ SOLAR_ACTIVITY_MONITOR ]</div>
+            </div>
+            <div class="feature-content">
+                <span class="tag">MODULE 04 // DONKI-SOLAR</span>
+                <h2>SPACE WEATHER</h2>
+                <p>Solar flare and heliospheric monitoring via NASA DONKI. Analyzes X-ray activity and coronal mass ejections to predict ionospheric disruption.</p>
+                <ul>
+                    <li>X-Class and M-Class flare event logging</li>
+                    <li>Active Solar Region (AR) identification</li>
+                    <li>Real-time peak-time timestamping</li>
+                    <li>Impact assessment for satellite communications</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="mono-label">ORBITVIEW // DATA PROVIDED BY NASA SSC & JPL</div>
+        <div style="margin-top: 10px;">V.1.0.5 STATUS: OPERATIONAL</div>
+    </footer>
+
+</div>
+
+<style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.3); opacity: 0.4; } 100% { transform: scale(1); opacity: 0.8; } }
+</style>
+
+</body>
+</html>
