@@ -56,28 +56,24 @@
     .card-desc  { font-size:8px; line-height:1.9; color:#555; letter-spacing:1px; }
     .card-arrow { position:absolute; bottom:22px; right:22px; font-size:15px; opacity:.25; transition:.3s; }
 
-    /* SAT — blue */
     .card-sat { border-color:rgba(68,136,255,.2); }
     .card-sat .card-tag   { color:#4488ff; border-color:rgba(68,136,255,.35); }
     .card-sat .card-title { color:#6aa8ff; }
     .card-sat:hover { border-color:rgba(68,136,255,.5); box-shadow:0 16px 44px rgba(68,136,255,.1); }
     .card-sat .card-arrow { color:#4488ff; }
 
-    /* ATM — orange */
     .card-atm { border-color:rgba(255,102,51,.2); }
     .card-atm .card-tag   { color:#ff6633; border-color:rgba(255,102,51,.35); }
     .card-atm .card-title { color:#ff9966; }
     .card-atm:hover { border-color:rgba(255,102,51,.5); box-shadow:0 16px 44px rgba(255,60,0,.1); }
     .card-atm .card-arrow { color:#ff6633; }
 
-    /* AST — green */
     .card-ast { border-color:rgba(51,255,136,.2); }
     .card-ast .card-tag   { color:#33ff88; border-color:rgba(51,255,136,.35); }
     .card-ast .card-title { color:#66ffaa; }
     .card-ast:hover { border-color:rgba(51,255,136,.5); box-shadow:0 16px 44px rgba(51,255,100,.08); }
     .card-ast .card-arrow { color:#33ff88; }
 
-    /* WX — yellow */
     .card-wx { border-color:rgba(255,204,0,.2); }
     .card-wx .card-tag   { color:#ffcc00; border-color:rgba(255,204,0,.35); }
     .card-wx .card-title { color:#ffdd55; }
@@ -89,86 +85,305 @@
     @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
 
     .glow-link {
-    margin-bottom: 20px;
-  /* Typography */
-  font-family: 'Orbitron', sans-serif;
-  color: #ffffff;
-  text-decoration: none;
-  letter-spacing: 2px;
-  font-weight: bold;
-  
-  /* Smooth transition for the glow */
-  transition: all 0.3s ease-in-out;
-  
-  /* Optional: initial very subtle glow to make it look "active" */
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
-}
+      margin-bottom:20px; display:inline-block;
+      font-family:'Orbitron',sans-serif; color:#fff; text-decoration:none;
+      letter-spacing:2px; font-weight:bold;
+      transition:all .3s ease-in-out;
+      text-shadow:0 0 5px rgba(255,255,255,.2);
+    }
+    .glow-link:hover {
+      color:#fff;
+      text-shadow:0 0 10px rgba(255,255,255,.8),0 0 20px rgba(255,255,255,.5),0 0 30px rgba(255,255,255,.3);
+      transform:scale(1.05);
+    }
 
-.glow-link:hover {
-  color: #ffffff; /* Keep it white or shift to a slight off-white */
-  
-  /* The Glow Effect */
-  /* Layering multiple shadows creates a more intense, realistic "neon" bloom */
-  text-shadow: 
-    0 0 10px rgba(255, 255, 255, 0.8),
-    0 0 20px rgba(255, 255, 255, 0.5),
-    0 0 30px rgba(255, 255, 255, 0.3);
-    
-  /* Optional: slight scale up to add "punch" */
-  transform: scale(1.05);
-}
+    .secret-btn {
+      position:fixed; bottom:18px; right:22px; z-index:50;
+      font-family:'JetBrains Mono',monospace; font-size:7px;
+      letter-spacing:3px; color:rgba(255,255,255,.04);
+      background:transparent; border:1px solid rgba(255,255,255,.04);
+      padding:5px 10px; cursor:pointer;
+      transition:color .4s, border-color .4s, text-shadow .4s;
+      user-select:none;
+    }
+    .secret-btn:hover {
+      color:rgba(255,255,255,.55);
+      border-color:rgba(255,255,255,.2);
+      text-shadow:0 0 8px rgba(255,255,255,.3);
+    }
+
+    .modal-overlay {
+      position:fixed; inset:0; z-index:200;
+      background:rgba(0,0,0,.88);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none;
+      transition:opacity .25s;
+    }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+
+    .terminal {
+      width:480px; max-width:92vw;
+      background:#000; border:1px solid rgba(255,255,255,.15);
+      font-family:'JetBrains Mono',monospace; font-size:11px;
+      position:relative; overflow:hidden;
+    }
+    .terminal::before {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);
+      z-index:1;
+    }
+
+    .term-bar {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 14px; border-bottom:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.03);
+    }
+    .term-bar-title { font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:4px; color:rgba(255,255,255,.5); }
+    .term-close {
+      font-size:9px; letter-spacing:2px; color:rgba(255,255,255,.2);
+      cursor:pointer; transition:color .2s; background:none; border:none; font-family:inherit;
+    }
+    .term-close:hover { color:rgb(255, 255, 255); }
+
+    .term-body { padding:22px 22px 26px; position:relative; z-index:2; }
+
+    .term-line { color:rgba(255,255,255,.25); margin-bottom:4px; letter-spacing:1px; }
+    .term-line.dim { color:rgba(255,255,255,.1); }
+    .term-line.accent { color:rgba(255,255,255,.45); }
+    .term-prompt { color:rgba(255,255,255,.35); margin-bottom:16px; margin-top:14px; }
+    .term-prompt span { color:rgba(255,255,255,.6); }
+
+    .term-input-row {
+      display:flex; align-items:center; gap:10px;
+      border:1px solid rgba(255,255,255,.12); padding:10px 14px;
+      margin-bottom:16px; background:rgba(255,255,255,.02);
+    }
+    .term-input-row .prompt-sym { color:rgba(255,255,255,.3); font-size:12px; flex-shrink:0; }
+    .term-input-row input {
+      flex:1; background:transparent; border:none; outline:none;
+      font-family:'JetBrains Mono',monospace; font-size:11px;
+      color:rgba(255,255,255,.8); letter-spacing:2px;
+      caret-color:rgba(255,255,255,.6);
+    }
+    .term-input-row input::placeholder { color:rgba(255,255,255,.15); letter-spacing:1px; }
+
+    .term-submit {
+      width:100%; padding:10px; background:transparent;
+      border:1px solid rgba(255,255,255,.15); color:rgba(255,255,255,.5);
+      font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:4px;
+      cursor:pointer; transition:all .25s; text-transform:uppercase;
+    }
+    .term-submit:hover { border-color:rgba(255,255,255,.4); color:#fff; background:rgba(255,255,255,.04); }
+    .term-submit:disabled { opacity:.3; cursor:not-allowed; }
+
+    .term-status {
+      margin-top:14px; font-size:9px; letter-spacing:2px; min-height:14px;
+      transition:color .2s;
+    }
+    .term-status.idle     { color:rgba(255,255,255,.2); }
+    .term-status.busy     { color:rgba(255,204,0,.6); }
+    .term-status.ok       { color:rgba(51,255,136,.7); }
+    .term-status.fail     { color:rgba(255,80,60,.7); }
+
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)}
+      60%{transform:translateX(-4px)}
+      80%{transform:translateX(4px)}
+    }
+    .terminal.shake { animation:shake .35s ease; }
+
+    @keyframes scanSuccess {
+      0%   { top:-100%; opacity:.4; }
+      100% { top:200%;  opacity:0; }
+    }
+    .scan-sweep {
+      position:absolute; left:0; right:0; height:60px; z-index:3; pointer-events:none;
+      background:linear-gradient(to bottom,transparent,rgba(51,255,136,.08),transparent);
+      top:-100%; opacity:0;
+    }
+    .scan-sweep.run { animation:scanSuccess .7s ease forwards; }
+
+    .term-attempts { font-size:7px; letter-spacing:2px; color:rgba(255,255,255,.12); margin-top:8px; }
   </style>
 </head>
 <body>
-<div class="wrapper">
 
+<div class="wrapper">
   <div class="logo">ORBITVIEW</div>
   <div class="logo-sub">SPACE SITUATIONAL AWARENESS TERMINAL</div>
-  <a href="index.html" class="glow-link">[ FEATURES ]</a>
-
+  <a href="features3.html" class="glow-link">[ FEATURES ]</a>
   <div class="divider"></div>
 
   <div class="cards">
-
-    <a href="s.html" class="card card-sat">
+    <a href="sv1.html" class="card card-sat">
       <span class="card-icon">🛰</span>
       <span class="card-tag">MODULE 01 · SAT</span>
       <div class="card-title">SATELLITE</div>
-      <div class="card-desc">Live tracking of 72 active spacecraft via NASA SSC. Real-time LEO, MEO and GEO orbital positions with trail history.</div>
+      <div class="card-desc">Live tracking of active spacecraft via NASA SSC. Real-time LEO, MEO and GEO orbital positions.</div>
       <span class="card-arrow">→</span>
     </a>
-
-    <a href="fireball.html" class="card card-atm">
+    <a href="av1.html" class="card card-atm">
       <span class="card-icon">☄️</span>
       <span class="card-tag">MODULE 02 · ATM</span>
       <div class="card-title">ATMOSPHERE</div>
-      <div class="card-desc">Fireball and bolide impact events from NASA JPL CNEOS. Historical atmospheric entry data classified by impact energy.</div>
+      <div class="card-desc">Fireball events from NASA JPL CNEOS. Historical atmospheric entry data.</div>
       <span class="card-arrow">→</span>
     </a>
-
-    <a href="a.html" class="card card-ast">
+    <a href="mv2.html" class="card card-ast">
       <span class="card-icon">🪨</span>
       <span class="card-tag">MODULE 03 · AST</span>
       <div class="card-title">ASTEROID</div>
-      <div class="card-desc">Near-Earth objects approaching within 7 days via NASA NeoWs. Size classification with hazard assessment and miss distance.</div>
+      <div class="card-desc">Near-Earth objects approaching within 7 days via NASA NeoWs.</div>
       <span class="card-arrow">→</span>
     </a>
-
-    <a href="w.html" class="card card-wx">
+    <a href="wv5.html" class="card card-wx">
       <span class="card-icon">☀️</span>
       <span class="card-tag">MODULE 04 · WX</span>
       <div class="card-title">SPACE WX</div>
-      <div class="card-desc">Solar flare events from NASA DONKI. Last 30 days of X, M, and C-class flares with heliographic source positions.</div>
+      <div class="card-desc">Solar flare events from NASA DONKI. Last 30 days of flare activity.</div>
       <span class="card-arrow">→</span>
     </a>
-
   </div>
 
   <div class="status-row">
     <span class="status-dot"></span>
-    SERVER REQUIRED &nbsp;·&nbsp; RUN <span style="color:#3a3a3a">node server.js</span> BEFORE LAUNCHING
+    NETWORK STATUS &nbsp;·&nbsp; REMOTE BACKEND CONNECTED
   </div>
-
 </div>
+
+<button class="secret-btn" id="secretBtn">CONTROLS</button>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="terminal" id="terminal">
+    <div class="scan-sweep" id="scanSweep"></div>
+    <div class="term-bar">
+      <span class="term-bar-title">ORBITVIEW · RESTRICTED ACCESS</span>
+      <button class="term-close" id="modalClose">[ ESC ]</button>
+    </div>
+    <div class="term-body">
+      <div class="term-line dim">────────────────────────────────────────</div>
+      <div class="term-line accent" style="margin-top:10px">ELEVATED PRIVILEGE REQUIRED</div>
+      <div class="term-line" style="margin-top:6px">This module requires operator-level authorisation.</div>
+      <div class="term-line dim" style="margin-top:10px">────────────────────────────────────────</div>
+      <div class="term-prompt">&gt; <span>AWAITING INPUT</span></div>
+      <div class="term-input-row">
+        <span class="prompt-sym">⬡</span>
+        <input type="password" id="pwInput" placeholder="enter access key" autocomplete="off" spellcheck="false" maxlength="64" />
+      </div>
+      <button class="term-submit" id="submitBtn">[ AUTHENTICATE ]</button>
+      <div class="term-status idle" id="termStatus">STANDING BY</div>
+      <div class="term-attempts" id="termAttempts"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // FIX 1: Point to your Render URL (Replace this placeholder with yours)
+  const BACKEND_URL = 'https://orbitview-backend.onrender.com'; 
+
+  const secretBtn    = document.getElementById('secretBtn');
+  const overlay      = document.getElementById('modalOverlay');
+  const terminal     = document.getElementById('terminal');
+  const modalClose   = document.getElementById('modalClose');
+  const pwInput      = document.getElementById('pwInput');
+  const submitBtn    = document.getElementById('submitBtn');
+  const termStatus   = document.getElementById('termStatus');
+  const termAttempts = document.getElementById('termAttempts');
+  const scanSweep    = document.getElementById('scanSweep');
+
+  let attempts = 0;
+  const MAX_ATTEMPTS = 5;
+  let locked = false;
+
+  function openModal() {
+    overlay.classList.add('open');
+    setTimeout(() => pwInput.focus(), 80);
+    setStatus('idle', 'STANDING BY');
+  }
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    pwInput.value = '';
+    if (!locked) setStatus('idle', 'STANDING BY');
+  }
+
+  function setStatus(type, msg) {
+    termStatus.className = 'term-status ' + type;
+    termStatus.textContent = msg;
+  }
+
+  function shakeTerminal() {
+    terminal.classList.remove('shake');
+    void terminal.offsetWidth;
+    terminal.classList.add('shake');
+  }
+
+  function sweepSuccess() {
+    scanSweep.classList.remove('run');
+    void scanSweep.offsetWidth;
+    scanSweep.classList.add('run');
+  }
+
+  secretBtn.addEventListener('click', openModal);
+  modalClose.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+    if (e.key === 'Enter'  && overlay.classList.contains('open')) handleSubmit();
+  });
+
+  submitBtn.addEventListener('click', handleSubmit);
+
+  async function handleSubmit() {
+    if (locked) return;
+    const pw = pwInput.value.trim();
+    if (!pw) { setStatus('fail', 'NO INPUT DETECTED'); shakeTerminal(); return; }
+
+    submitBtn.disabled = true;
+    setStatus('busy', 'AUTHENTICATING...');
+
+    try {
+      // FIX 2: Use Absolute URL for Render
+      const res = await fetch(`${BACKEND_URL}/api/auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setStatus('ok', 'ACCESS GRANTED · REDIRECTING...');
+        sweepSuccess();
+        setTimeout(() => {
+          window.location.href = data.redirect || 'controls.html';
+        }, 900);
+      } else {
+        attempts++;
+        shakeTerminal();
+        pwInput.value = '';
+        pwInput.focus();
+        const remaining = MAX_ATTEMPTS - attempts;
+        if (attempts >= MAX_ATTEMPTS) {
+          locked = true;
+          setStatus('fail', 'TERMINAL LOCKED');
+          termAttempts.textContent = 'CONTACT SYSTEM ADMINISTRATOR';
+        } else {
+          setStatus('fail', data.message || 'ACCESS DENIED');
+          termAttempts.textContent = `ATTEMPTS REMAINING: ${remaining}`;
+          submitBtn.disabled = false;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      shakeTerminal();
+      setStatus('fail', 'OFFLINE · SERVER UNREACHABLE');
+      submitBtn.disabled = false;
+    }
+  }
+</script>
 </body>
 </html>
