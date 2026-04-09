@@ -280,7 +280,7 @@
 </div>
 
 <script>
-  // FIX 1: Point to your Render URL (Replace this placeholder with yours)
+// FIX 1: Point to your Render URL
   const BACKEND_URL = 'https://orbitview-backend.onrender.com'; 
 
   const secretBtn    = document.getElementById('secretBtn');
@@ -356,10 +356,16 @@
       const data = await res.json();
 
       if (res.ok && data.success) {
+        // --- NEW FIX: SET SESSION AUTH ---
+        // This ensures controls.html doesn't kick you out
+        sessionStorage.setItem('orbitview_auth', 'true');
+        
         setStatus('ok', 'ACCESS GRANTED · REDIRECTING...');
         sweepSuccess();
+        
         setTimeout(() => {
-          window.location.href = data.redirect || 'controls.html';
+          // --- REDIRECT LOGIC ---
+          window.location.href = 'controls.html';
         }, 900);
       } else {
         attempts++;
