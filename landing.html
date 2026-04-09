@@ -280,7 +280,7 @@
 </div>
 
 <script>
-// FIX 1: Point to your Render URL
+  // FIX 1: Point to your Render URL
   const BACKEND_URL = 'https://orbitview-backend.onrender.com'; 
 
   const secretBtn    = document.getElementById('secretBtn');
@@ -346,7 +346,6 @@
     setStatus('busy', 'AUTHENTICATING...');
 
     try {
-      // FIX 2: Use Absolute URL for Render
       const res = await fetch(`${BACKEND_URL}/api/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -356,15 +355,16 @@
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // --- NEW FIX: SET SESSION AUTH ---
-        // This ensures controls.html doesn't kick you out
+        // --- SECURITY UPGRADE: SAVE THE PASSPORT ---
+        // 1. Set the flag so the page doesn't redirect you out
         sessionStorage.setItem('orbitview_auth', 'true');
+        // 2. Save the actual password for the Backend Handshake
+        sessionStorage.setItem('orbitview_pass_key', pw); 
         
         setStatus('ok', 'ACCESS GRANTED · REDIRECTING...');
         sweepSuccess();
         
         setTimeout(() => {
-          // --- REDIRECT LOGIC ---
           window.location.href = 'controls.html';
         }, 900);
       } else {
