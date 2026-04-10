@@ -115,32 +115,36 @@
     ::-webkit-scrollbar {
   width: 5px;
 }
-/* 1. Set the width of the scrollbar */
+/* 1. Target the root and all elements */
 ::-webkit-scrollbar {
-  width: 6px;               /* Thin and subtle */
-  background: transparent;  /* Makes the overall area see-through */
+  width: 8px; /* Control the thickness here */
 }
 
-/* 2. The Track (the part the thumb slides in) */
+/* 2. Make the track (background) completely invisible */
 ::-webkit-scrollbar-track {
-  background: transparent;  /* Fully transparent background */
+  background: transparent !important;
 }
 
-/* 3. The Thumb (the moving part) */
+/* 3. Style the "Thumb" (the bar you grab) */
 ::-webkit-scrollbar-thumb {
-  background: #ffffff;      /* Pure white thumb */
-  border-radius: 10px;      /* Rounded edges for a modern look */
+  background: #ffffff !important; /* Solid White */
+  border-radius: 10px;           /* Rounded ends */
+  /* This creates 'breathing room' so it doesn't touch the edges */
+  border: 2px solid transparent; 
+  background-clip: content-box;
 }
 
-/* 4. Optional: Thumb hover effect */
-::-webkit-scrollbar-thumb:hover {
-  background: #e0e0e0;      /* Slightly grey on hover so the user knows it's active */
+/* 4. REMOVE THE ARROWS (This is what's causing that grey box look) */
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0;
+  height: 0;
 }
 
-/* 5. For Firefox support */
+/* 5. Firefox Support */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #ffffff transparent; /* thumb-color track-color */
+  scrollbar-color: #ffffff transparent;
 }
   </style>
 </head>
