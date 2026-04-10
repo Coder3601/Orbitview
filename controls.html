@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>OrbitView | Operator Controls</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22black%22 stroke=%22white%22 stroke-width=%220.5%22><path d=%22M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z%22/></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap');
+    
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    body { 
+      background:#000; color:#fff; font-family:'JetBrains Mono',monospace; 
+      height:100vh; overflow:hidden; display:flex; align-items:center; justify-content:center;
+    }
+
+    body::after { 
+      content:''; position:fixed; inset:0; z-index:10; pointer-events:none; 
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px); 
+    }
+
+    .terminal-container {
+      width:900px; max-width:95vw; height:600px;
+      background:rgba(5,5,5,0.95); border:1px solid rgba(255,255,255,0.1);
+      display:flex; flex-direction:column; position:relative;
+      box-shadow: 0 0 40px rgba(0,0,0,1);
+    }
+
+    .term-header {
+      padding:12px 20px; border-bottom:1px solid rgba(255,255,255,0.1);
+      display:flex; justify-content:space-between; align-items:center;
+      background:rgba(255,255,255,0.03);
+    }
+    .term-title { font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:4px; color:rgba(255,255,255,0.6); }
+    
+    .exit-btn { 
+      background:none; border:1px solid rgba(255,80,60,0.3); color:rgba(255,80,60,0.6);
+      padding:4px 12px; font-size:9px; cursor:pointer; transition: 0.3s;
+    }
+    .exit-btn:hover { background:rgba(255,80,60,0.1); color:#ff503c; border-color:#ff503c; }
+
+    .term-grid { display:grid; grid-template-columns: 250px 1fr; flex:1; overflow:hidden; }
+    .sidebar { border-right:1px solid rgba(255,255,255,0.1); padding:20px; background:rgba(255,255,255,0.01); }
+    .stat-box { margin-bottom:25px; }
+    .stat-label { font-size:8px; color:rgba(255,255,255,0.3); letter-spacing:2px; margin-bottom:5px; text-transform:uppercase; }
+    .stat-value { font-family:'Orbitron',sans-serif; font-size:12px; color:#33ff88; transition: color 0.5s ease; }
+
+    .main-panel { padding:30px; overflow-y:auto; }
+    .section-title { font-family:'Orbitron',sans-serif; font-size:14px; letter-spacing:3px; margin-bottom:20px; color:rgba(255,255,255,0.8); }
+
+    .control-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:15px; border:1px solid rgba(255,255,255,0.05); margin-bottom:10px;
+      background:rgba(255,255,255,0.02); transition: 0.3s;
+    }
+    .control-row:hover { border-color:rgba(255,255,255,0.2); background:rgba(255,255,255,0.04); }
+    .control-info { display:flex; flex-direction:column; gap:4px; }
+    .control-name { font-size:11px; color:#fff; letter-spacing:1px; }
+    .control-desc { font-size:9px; color:rgba(255,255,255,0.3); }
+
+    .switch { position:relative; display:inline-block; width:40px; height:20px; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider {
+      position:absolute; cursor:pointer; inset:0;
+      background-color:rgba(255,255,255,0.1); transition:.4s; border:1px solid rgba(255,255,255,0.2);
+    }
+    .slider:before {
+      position:absolute; content:""; height:12px; width:12px; left:3px; bottom:3px;
+      background-color:rgba(255,255,255,0.5); transition:.4s;
+    }
+    input:checked + .slider { background-color: rgba(51,255,136,0.2); border-color:#33ff88; }
+    input:checked + .slider:before { transform: translateX(20px); background-color:#33ff88; }
+
+    .action-btn {
+      background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.2);
+      color:#fff; padding:8px 16px; font-family:inherit; font-size:10px;
+      cursor:pointer; transition:0.3s; letter-spacing:2px;
+    }
+    .action-btn:hover { background:rgba(255,255,255,0.1); border-color:#fff; }
+    .action-btn:disabled { opacity:0.3; cursor:not-allowed; }
+    .action-btn.danger:hover { background:rgba(255,80,60,0.2); border-color:#ff503c; color:#ff503c; }
+
+    .console-box {
+      height:100px; background:rgba(0,0,0,0.3); border-top:1px solid rgba(255,255,255,0.1);
+      padding:10px 20px; font-size:9px; color:rgba(51,255,136,0.5); overflow-y:auto;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="terminal-container">
+    <div class="term-header">
+      <span class="term-title">ORBITVIEW // CONTROL_CENTER // AUTH_LEVEL: 04</span>
+      <button class="exit-btn" onclick="logout()">[ TERMINATE SESSION ]</button>
+    </div>
+
+    <div class="term-grid">
+      <div class="sidebar">
+        <div class="stat-box">
+          <div class="stat-label">Network Status</div>
+          <div class="stat-value" id="netStatus">INITIALIZING...</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Active Modules</div>
+          <div class="stat-value" id="activeCount">-- / 04</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Backend Latency</div>
+          <div class="stat-value" id="latency">--ms</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Uptime</div>
+          <div class="stat-value" id="uptime">00:00:00</div>
+        </div>
+      </div>
+
+      <div class="main-panel">
+        <h2 class="section-title">SYSTEM OVERRIDES</h2>
+
+        <div class="control-row">
+          <div class="control-info">
+            <span class="control-name">Global Visual Scanlines</span>
+            <span class="control-desc">Enable/Disable the CSS scanline overlay.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="scanlineToggle" onchange="updateVisuals()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="control-row">
+          <div class="control-info">
+            <span class="control-name">Data Refresh: High Frequency</span>
+            <span class="control-desc">Bypass caching — forces fresh NASA data on next diagnostic.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="highFidToggle" onchange="onHighFidToggle()">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="control-row">
+          <div class="control-info">
+            <span class="control-name">Force Cache Purge</span>
+            <span class="control-desc">Clear all server caches and force fresh NASA handshake on all modules.</span>
+          </div>
+          <button class="action-btn" id="purgeBtn" onclick="purgeCache()">PURGE</button>
+        </div>
+
+        <div class="control-row">
+          <div class="control-info">
+            <span class="control-name" style="color:#ff503c;">Emergency Logout</span>
+            <span class="control-desc">Revoke local auth and lock terminal.</span>
+          </div>
+          <button class="action-btn danger" onclick="logout()">SHUTDOWN</button>
+        </div>
+      </div>
+    </div>
+    <div class="console-box" id="console">
+      [SYSTEM] Awaiting diagnostic check...
+    </div>
+  </div>
+
+<script>
+    const BACKEND_URL = 'https://orbitview-backend.onrender.com';
+    const STATUS_COLORS = { OPERATIONAL: '#33ff88', DEGRADED: '#ffcc00', CRITICAL: '#ff503c' };
+    let startTime = Date.now();
+
+    // ── AUTHENTICATED FETCH HELPER ───────────────────────────────
+    async function authFetch(url, options = {}) {
+        const passKey = sessionStorage.getItem('orbitview_pass_key');
+        const headers = { ...options.headers, 'x-controls-auth': passKey };
+        return fetch(url, { ...options, headers });
+    }
+
+    // ── PURGE: hits every data endpoint with ?force=1 ────────────
+    async function purgeCache() {
+        const btn = document.getElementById('purgeBtn');
+        btn.disabled = true;
+        btn.textContent = 'PURGING...';
+        logEvent('Cache: Initiating global purge on all modules...');
+
+        const endpoints = ['satellites', 'fireballs', 'asteroids', 'weather'];
+        try {
+            const results = await Promise.all(
+                endpoints.map(e => authFetch(`${BACKEND_URL}/api/${e}?force=1`))
+            );
+            const forbidden = results.filter(r => r.status === 403).length;
+            if (forbidden > 0) throw new Error('Forbidden');
+            logEvent(`Cache: All ${endpoints.length} modules purged successfully.`);
+
+            // Flash latency yellow to give feedback
+            const latEl = document.getElementById('latency');
+            latEl.style.color = '#ffcc00';
+            setTimeout(() => latEl.style.color = '', 2000);
+        } catch (e) {
+            logEvent('Cache: Purge failed — Unauthorized or network error.', true);
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'PURGE';
+    }
+
+    // ── HIGH FREQUENCY TOGGLE: re-runs health check immediately ──
+    function onHighFidToggle() {
+        const isOn = document.getElementById('highFidToggle').checked;
+        logEvent(`High Frequency Mode: ${isOn ? 'ENABLED — forcing fresh diagnostic' : 'DISABLED'}`);
+        if (isOn) runHealthCheck();
+    }
+
+    // ── HEALTH CHECK ─────────────────────────────────────────────
+    async function runHealthCheck() {
+        const start = Date.now();
+        const isHighFreq = document.getElementById('highFidToggle')?.checked;
+        const queryParams = isHighFreq ? '?force=1' : '';
+
+        try {
+            const res = await authFetch(`${BACKEND_URL}/api/health${queryParams}`);
+            if (res.status === 403) {
+                logEvent('SYSTEM: Admin key invalid — access restricted.', true);
+                document.getElementById('netStatus').textContent = 'AUTH_FAILED';
+                document.getElementById('netStatus').style.color = '#ff503c';
+                return;
+            }
+            const data = await res.json();
+
+            const netEl = document.getElementById('netStatus');
+            netEl.textContent = data.status;
+            netEl.style.color = STATUS_COLORS[data.status] || '#fff';
+
+            document.getElementById('activeCount').textContent =
+                `0${data.activeModules} / 0${data.totalModules}`;
+            document.getElementById('latency').textContent = `${Date.now() - start}ms`;
+
+            // Log each module's status
+            if (data.details) {
+                data.details.forEach(m => {
+                    logEvent(`Module ${m.module}: ${m.status}`, m.status !== 'ONLINE');
+                });
+            }
+            logEvent(`Diagnostic complete — ${data.activeModules}/${data.totalModules} modules active${isHighFreq ? ' (HIGH_FREQ)' : ''}.`);
+        } catch (e) {
+            document.getElementById('netStatus').textContent = 'CONNECTION_LOST';
+            document.getElementById('netStatus').style.color = '#ff503c';
+            logEvent('CRITICAL: Link to backend lost.', true);
+        }
+
+        // Re-run every 3 hours
+        setTimeout(runHealthCheck, 10800000);
+    }
+
+    // ── SCANLINES ─────────────────────────────────────────────────
+    function updateVisuals() {
+        const isChecked = document.getElementById('scanlineToggle').checked;
+        localStorage.setItem('useScanlines', isChecked);
+        logEvent(`Aesthetics: Scanlines toggled ${isChecked ? 'ON' : 'OFF'}`);
+    }
+
+    // ── LOGOUT ────────────────────────────────────────────────────
+    function logout() {
+        sessionStorage.clear();
+        window.location.href = 'landing.html';
+    }
+
+    // ── CONSOLE LOG ───────────────────────────────────────────────
+    function logEvent(msg, isError = false) {
+        const consoleEl = document.getElementById('console');
+        const line = document.createElement('div');
+        line.style.color = isError ? '#ff503c' : 'rgba(51,255,136,0.5)';
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        consoleEl.prepend(line);
+    }
+
+    // ── UPTIME ────────────────────────────────────────────────────
+    function updateUptime() {
+        const diff = Math.floor((Date.now() - startTime) / 1000);
+        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
+        setTimeout(updateUptime, 1000);
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────
+    window.onload = () => {
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isLocal) sessionStorage.setItem('orbitview_auth', 'true');
+
+        if (sessionStorage.getItem('orbitview_auth') !== 'true') {
+            window.location.href = 'landing.html';
+            return;
+        }
+
+        // Restore scanline toggle state
+        const scanlines = localStorage.getItem('useScanlines') !== 'false';
+        document.getElementById('scanlineToggle').checked = scanlines;
+
+        logEvent('Authorization confirmed. System monitoring online.');
+        runHealthCheck();
+        updateUptime();
+    };
+</script>
+</body>
+</html>
