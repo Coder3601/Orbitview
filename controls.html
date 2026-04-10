@@ -115,15 +115,32 @@
     ::-webkit-scrollbar {
   width: 5px;
 }
+/* 1. Set the width of the scrollbar */
+::-webkit-scrollbar {
+  width: 6px;               /* Thin and subtle */
+  background: transparent;  /* Makes the overall area see-through */
+}
+
+/* 2. The Track (the part the thumb slides in) */
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent;  /* Fully transparent background */
 }
+
+/* 3. The Thumb (the moving part) */
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 5px;
+  background: #ffffff;      /* Pure white thumb */
+  border-radius: 10px;      /* Rounded edges for a modern look */
 }
+
+/* 4. Optional: Thumb hover effect */
 ::-webkit-scrollbar-thumb:hover {
-  background: #39FF14; /* Matches your Satellite module blue */
+  background: #e0e0e0;      /* Slightly grey on hover so the user knows it's active */
+}
+
+/* 5. For Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff transparent; /* thumb-color track-color */
 }
   </style>
 </head>
