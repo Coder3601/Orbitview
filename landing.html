@@ -360,7 +360,7 @@
         sessionStorage.setItem('orbitview_auth', 'true');
         // 2. Save the actual password for the Backend Handshake
         sessionStorage.setItem('orbitview_pass_key', pw); 
-        
+        sessionStorage.setItem('orbitview_session_token', data.sessionToken);
         setStatus('ok', 'ACCESS GRANTED · REDIRECTING...');
         sweepSuccess();
         
