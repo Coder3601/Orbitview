@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>OrbitView | Operator Controls</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22black%22 stroke=%22white%22 stroke-width=%220.5%22><path d=%22M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z%22/></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono&display=swap');
+
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      background:#000; color:#fff; font-family:'JetBrains Mono',monospace;
+      height:100vh; overflow:hidden; display:flex; align-items:center; justify-content:center;
+    }
+    body::after {
+      content:''; position:fixed; inset:0; z-index:10; pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.05) 2px,rgba(0,0,0,.05) 4px);
+    }
+
+    .terminal-container {
+      width:960px; max-width:95vw; height:640px;
+      background:rgba(5,5,5,0.95); border:1px solid rgba(255,255,255,0.1);
+      display:flex; flex-direction:column; position:relative;
+      box-shadow:0 0 40px rgba(0,0,0,1);
+      transition: border-color .4s;
+    }
+    .terminal-container.lockdown-active {
+      border-color: rgba(255,80,60,0.6);
+      box-shadow: 0 0 40px rgba(255,80,60,0.15);
+    }
+
+    /* ── HEADER ── */
+    .term-header {
+      padding:12px 20px; border-bottom:1px solid rgba(255,255,255,0.1);
+      display:flex; justify-content:space-between; align-items:center;
+      background:rgba(255,255,255,0.03); flex-shrink:0;
+    }
+    .term-title { font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:4px; color:rgba(255,255,255,0.6); }
+    .header-right { display:flex; align-items:center; gap:12px; }
+    .lockdown-badge {
+      font-family:'Orbitron',sans-serif; font-size:8px; letter-spacing:3px;
+      color:#ff503c; border:1px solid rgba(255,80,60,0.5); padding:3px 10px;
+      display:none; animation:blink 1.2s ease-in-out infinite;
+    }
+    .lockdown-badge.visible { display:block; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .exit-btn {
+      background:none; border:1px solid rgba(255,80,60,0.3); color:rgba(255,80,60,0.6);
+      padding:4px 12px; font-size:9px; cursor:pointer; transition:.3s; font-family:inherit;
+    }
+    .exit-btn:hover { background:rgba(255,80,60,0.1); color:#ff503c; border-color:#ff503c; }
+
+    /* ── GRID ── */
+    .term-grid { display:grid; grid-template-columns:250px 1fr; flex:1; overflow:hidden; min-height:0; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      border-right:1px solid rgba(255,255,255,0.1); padding:20px;
+      background:rgba(255,255,255,0.01); overflow-y:auto;
+    }
+    .stat-box { margin-bottom:18px; }
+    .stat-label { font-size:8px; color:rgba(255,255,255,0.3); letter-spacing:2px; margin-bottom:5px; text-transform:uppercase; }
+    .stat-value { font-family:'Orbitron',sans-serif; font-size:12px; color:#33ff88; transition:color 0.4s ease; }
+    .sidebar-divider { border:none; border-top:1px solid rgba(255,255,255,0.07); margin:6px 0 16px; }
+
+    /* session timer */
+    #sessionTimer { color:#4488ff; }
+    #sessionTimer.expiring { color:#ffcc00; }
+
+    /* request counter table */
+    .req-table { width:100%; border-collapse:collapse; }
+    .req-table td { font-size:9px; padding:3px 0; }
+    .req-table td:first-child { color:rgba(255,255,255,0.35); letter-spacing:1px; }
+    .req-table td:last-child  { text-align:right; font-family:'Orbitron',sans-serif; font-size:10px; color:#4488ff; }
+    .req-table tr.total-row td { border-top:1px solid rgba(255,255,255,0.1); padding-top:6px; margin-top:4px; }
+    .req-table tr.total-row td:first-child { color:rgba(255,255,255,0.6); }
+    .req-table tr.total-row td:last-child  { color:#fff; }
+
+    /* ── MAIN PANEL ── */
+    .main-panel { padding:24px 28px; overflow-y:auto; }
+    .section-title {
+      font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:3px;
+      margin-bottom:14px; color:rgba(255,255,255,0.5); text-transform:uppercase;
+    }
+    .section-gap { margin-top:22px; }
+
+    /* ── CONTROL ROWS ── */
+    .control-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:13px 15px; border:1px solid rgba(255,255,255,0.05); margin-bottom:8px;
+      background:rgba(255,255,255,0.02); transition:.3s;
+    }
+    .control-row:hover { border-color:rgba(255,255,255,0.15); background:rgba(255,255,255,0.04); }
+    .control-row.lockdown-row { border-color:rgba(255,80,60,0.15); }
+    .control-row.lockdown-row:hover { border-color:rgba(255,80,60,0.4); background:rgba(255,80,60,0.04); }
+    .control-row.lockdown-row.armed { border-color:rgba(255,80,60,0.6); background:rgba(255,80,60,0.07); }
+    .control-info { display:flex; flex-direction:column; gap:3px; }
+    .control-name { font-size:11px; color:#fff; letter-spacing:1px; }
+    .control-desc { font-size:8px; color:rgba(255,255,255,0.3); letter-spacing:.5px; }
+
+    /* kill-switch rows */
+    .kill-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 15px; border:1px solid rgba(255,255,255,0.05); margin-bottom:6px;
+      background:rgba(255,255,255,0.015); transition:.3s;
+    }
+    .kill-row:hover { border-color:rgba(255,255,255,0.12); }
+    .kill-info { display:flex; align-items:center; gap:10px; }
+    .kill-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; transition:background .4s, box-shadow .4s; }
+    .kill-dot.on  { background:#33ff88; box-shadow:0 0 6px #33ff8888; }
+    .kill-dot.off { background:#ff503c; box-shadow:0 0 6px #ff503c88; }
+    .kill-name { font-size:10px; color:rgba(255,255,255,0.75); letter-spacing:1px; }
+    .kill-tag  { font-size:7px;  color:rgba(255,255,255,0.25); letter-spacing:1px; margin-left:2px; }
+
+    /* ── TOGGLE SWITCH ── */
+    .switch { position:relative; display:inline-block; width:40px; height:20px; flex-shrink:0; }
+    .switch input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; cursor:pointer; inset:0; background-color:rgba(255,255,255,0.1); transition:.4s; border:1px solid rgba(255,255,255,0.2); }
+    .slider:before { position:absolute; content:""; height:12px; width:12px; left:3px; bottom:3px; background-color:rgba(255,255,255,0.5); transition:.4s; }
+    input:checked + .slider { background-color:rgba(51,255,136,0.2); border-color:#33ff88; }
+    input:checked + .slider:before { transform:translateX(20px); background-color:#33ff88; }
+    /* red variant for lockdown */
+    .switch.danger input:checked + .slider { background-color:rgba(255,80,60,0.25); border-color:#ff503c; }
+    .switch.danger input:checked + .slider:before { background-color:#ff503c; }
+
+    /* ── BUTTONS ── */
+    .action-btn {
+      background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.2);
+      color:#fff; padding:8px 16px; font-family:inherit; font-size:10px;
+      cursor:pointer; transition:.3s; letter-spacing:2px;
+    }
+    .action-btn:hover { background:rgba(255,255,255,0.1); border-color:#fff; }
+    .action-btn:disabled { opacity:.3; cursor:not-allowed; }
+    .action-btn.danger:hover { background:rgba(255,80,60,0.2); border-color:#ff503c; color:#ff503c; }
+
+    /* ── CONSOLE ── */
+    .console-box {
+      height:90px; background:rgba(0,0,0,0.3); border-top:1px solid rgba(255,255,255,0.1);
+      padding:8px 18px; font-size:9px; overflow-y:auto; flex-shrink:0;
+    }
+    .console-box div { padding:1px 0; }
+  </style>
+</head>
+<body>
+
+<div class="terminal-container" id="terminalContainer">
+
+  <div class="term-header">
+    <span class="term-title">ORBITVIEW // CONTROL_CENTER // AUTH_LEVEL: 04</span>
+    <div class="header-right">
+      <span class="lockdown-badge" id="lockdownBadge">⚠ LOCKDOWN ACTIVE</span>
+      <button class="exit-btn" onclick="logout()">[ TERMINATE SESSION ]</button>
+    </div>
+  </div>
+
+  <div class="term-grid">
+
+    <!-- ── SIDEBAR ── -->
+    <div class="sidebar">
+
+      <div class="stat-box">
+        <div class="stat-label">Network Status</div>
+        <div class="stat-value" id="netStatus">INITIALIZING...</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Active Modules</div>
+        <div class="stat-value" id="activeCount">-- / 04</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Backend Latency</div>
+        <div class="stat-value" id="latency">--ms</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Active Sessions</div>
+        <div class="stat-value" id="sessionCount">--</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Session Time</div>
+        <div class="stat-value" id="sessionTimer">00:00:00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Server Uptime</div>
+        <div class="stat-value" id="uptime">00:00:00</div>
+      </div>
+
+      <hr class="sidebar-divider"/>
+
+      <div class="stat-label" style="margin-bottom:10px;">Request Counts</div>
+      <table class="req-table">
+        <tr><td>SATELLITES</td><td id="rc-satellites">0</td></tr>
+        <tr><td>FIREBALLS</td> <td id="rc-fireballs">0</td></tr>
+        <tr><td>ASTEROIDS</td> <td id="rc-asteroids">0</td></tr>
+        <tr><td>WEATHER</td>   <td id="rc-weather">0</td></tr>
+        <tr class="total-row"><td>TOTAL</td><td id="rc-total">0</td></tr>
+      </table>
+
+    </div>
+
+    <!-- ── MAIN PANEL ── -->
+    <div class="main-panel">
+
+      <h2 class="section-title">System Overrides</h2>
+
+      <!-- LOCKDOWN -->
+      <div class="control-row lockdown-row" id="lockdownRow">
+        <div class="control-info">
+          <span class="control-name" style="color:#ff8070;">Public Lockdown</span>
+          <span class="control-desc">Block all public data endpoints. Only authenticated operators bypass. Clients receive 423 Locked.</span>
+        </div>
+        <label class="switch danger">
+          <input type="checkbox" id="lockdownToggle" onchange="toggleLockdown(this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <span class="control-name">Data Refresh: High Frequency</span>
+          <span class="control-desc">Bypass caching — forces fresh NASA data on next diagnostic.</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="highFidToggle" onchange="onHighFidToggle()">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <span class="control-name">Force Cache Purge</span>
+          <span class="control-desc">Clear all server caches and force fresh NASA handshake on all modules.</span>
+        </div>
+        <button class="action-btn" id="purgeBtn" onclick="purgeCache()">PURGE</button>
+      </div>
+
+      <div class="control-row">
+        <div class="control-info">
+          <span class="control-name" style="color:#ff503c;">Emergency Logout</span>
+          <span class="control-desc">Revoke local auth and lock terminal.</span>
+        </div>
+        <button class="action-btn danger" onclick="logout()">SHUTDOWN</button>
+      </div>
+
+      <!-- ── KILL SWITCHES ── -->
+      <div class="section-gap">
+        <h2 class="section-title">Module Kill Switches</h2>
+
+        <div class="kill-row">
+          <div class="kill-info">
+            <div class="kill-dot" id="dot-satellites"></div>
+            <span class="kill-name">SATELLITES</span>
+            <span class="kill-tag">NASA SSC</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="kill-satellites" onchange="toggleModule('satellites', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="kill-row">
+          <div class="kill-info">
+            <div class="kill-dot" id="dot-fireballs"></div>
+            <span class="kill-name">FIREBALLS</span>
+            <span class="kill-tag">NASA JPL CNEOS</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="kill-fireballs" onchange="toggleModule('fireballs', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="kill-row">
+          <div class="kill-info">
+            <div class="kill-dot" id="dot-asteroids"></div>
+            <span class="kill-name">ASTEROIDS</span>
+            <span class="kill-tag">NASA NeoWs</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="kill-asteroids" onchange="toggleModule('asteroids', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="kill-row">
+          <div class="kill-info">
+            <div class="kill-dot" id="dot-weather"></div>
+            <span class="kill-name">SPACE WEATHER</span>
+            <span class="kill-tag">NASA DONKI</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="kill-weather" onchange="toggleModule('weather', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="console-box" id="console">
+    <div style="color:rgba(51,255,136,0.5)">[SYSTEM] Awaiting diagnostic check...</div>
+  </div>
+
+</div>
+
+<script>
+    const BACKEND_URL   = 'https://orbitview-backend.onrender.com';
+    const STATUS_COLORS = { OPERATIONAL: '#33ff88', DEGRADED: '#ffcc00', CRITICAL: '#ff503c' };
+
+    let sessionToken   = null;
+    let sessionStart   = Date.now();   // local session clock
+    let serverUptimeMs = 0;            // from last stats poll
+
+    // ── AUTHENTICATED FETCH ──────────────────────────────────────
+    function getPassKey() { return sessionStorage.getItem('orbitview_pass_key') || ''; }
+
+    async function authFetch(url, options = {}) {
+        const headers = { ...options.headers, 'x-controls-auth': getPassKey() };
+        return fetch(url, { ...options, headers });
+    }
+
+    // ── CONSOLE LOG ──────────────────────────────────────────────
+    function logEvent(msg, isError = false) {
+        const el   = document.getElementById('console');
+        const line = document.createElement('div');
+        line.style.color = isError ? '#ff503c' : 'rgba(51,255,136,0.5)';
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        el.prepend(line);
+    }
+
+    // ── LOCKDOWN TOGGLE ──────────────────────────────────────────
+    async function toggleLockdown(enabled) {
+        logEvent(`Lockdown: ${enabled ? 'ACTIVATING...' : 'DEACTIVATING...'}`);
+        try {
+            const res = await authFetch(`${BACKEND_URL}/api/lockdown`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled })
+            });
+            if (res.status === 403) throw new Error('Forbidden');
+            const data = await res.json();
+            applyLockdownUI(data.lockdownEnabled);
+            logEvent(`Lockdown: ${data.lockdownEnabled ? 'ACTIVE — public access blocked' : 'DEACTIVATED — public access restored'}`);
+        } catch (e) {
+            logEvent(`Lockdown: Toggle failed — ${e.message}`, true);
+            // revert toggle
+            document.getElementById('lockdownToggle').checked = !enabled;
+        }
+    }
+
+    function applyLockdownUI(active) {
+        document.getElementById('lockdownToggle').checked = active;
+        document.getElementById('lockdownBadge').classList.toggle('visible', active);
+        document.getElementById('lockdownRow').classList.toggle('armed', active);
+        document.getElementById('terminalContainer').classList.toggle('lockdown-active', active);
+    }
+
+    // ── MODULE KILL SWITCH ───────────────────────────────────────
+    async function toggleModule(module, enabled) {
+        const dot = document.getElementById(`dot-${module}`);
+        if (dot) dot.className = `kill-dot ${enabled ? 'on' : 'off'}`;
+        logEvent(`Kill switch: ${module.toUpperCase()} → ${enabled ? 'ENABLED' : 'DISABLED'}`);
+        try {
+            const res = await authFetch(`${BACKEND_URL}/api/module-toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ module, enabled })
+            });
+            if (res.status === 403) throw new Error('Forbidden');
+        } catch (e) {
+            logEvent(`Kill switch: ${module} toggle failed — ${e.message}`, true);
+            const toggle = document.getElementById(`kill-${module}`);
+            if (toggle) toggle.checked = !enabled;
+            if (dot) dot.className = `kill-dot ${!enabled ? 'on' : 'off'}`;
+        }
+    }
+
+    // ── HEALTH CHECK ─────────────────────────────────────────────
+    async function runHealthCheck() {
+        const start      = Date.now();
+        const isHighFreq = document.getElementById('highFidToggle')?.checked;
+        try {
+            const res = await authFetch(`${BACKEND_URL}/api/health${isHighFreq ? '?force=1' : ''}`);
+            if (res.status === 403) {
+                logEvent('SYSTEM: Admin key invalid — access restricted.', true);
+                document.getElementById('netStatus').textContent  = 'AUTH_FAILED';
+                document.getElementById('netStatus').style.color  = '#ff503c';
+                return;
+            }
+            const data  = await res.json();
+            const netEl = document.getElementById('netStatus');
+            netEl.textContent  = data.status;
+            netEl.style.color  = STATUS_COLORS[data.status] || '#fff';
+            document.getElementById('activeCount').textContent = `0${data.activeModules} / 0${data.totalModules}`;
+            document.getElementById('latency').textContent     = `${Date.now() - start}ms`;
+            if (data.details) data.details.forEach(m => logEvent(`Module ${m.module}: ${m.status}`, m.status === 'OFFLINE'));
+            logEvent(`Diagnostic complete — ${data.activeModules}/${data.totalModules} modules active${isHighFreq ? ' (HIGH_FREQ)' : ''}.`);
+        } catch (e) {
+            document.getElementById('netStatus').textContent = 'CONNECTION_LOST';
+            document.getElementById('netStatus').style.color = '#ff503c';
+            logEvent('CRITICAL: Link to backend lost.', true);
+        }
+        setTimeout(runHealthCheck, 10800000);
+    }
+
+    function onHighFidToggle() {
+        const isOn = document.getElementById('highFidToggle').checked;
+        logEvent(`High Frequency Mode: ${isOn ? 'ENABLED' : 'DISABLED'}`);
+        if (isOn) runHealthCheck();
+    }
+
+    // ── PURGE ────────────────────────────────────────────────────
+    async function purgeCache() {
+        const btn = document.getElementById('purgeBtn');
+        btn.disabled = true; btn.textContent = 'PURGING...';
+        logEvent('Cache: Initiating global purge on all modules...');
+        try {
+            const results = await Promise.all(
+                ['satellites','fireballs','asteroids','weather'].map(e =>
+                    authFetch(`${BACKEND_URL}/api/${e}?force=1`)
+                )
+            );
+            if (results.some(r => r.status === 403)) throw new Error('Forbidden');
+            logEvent('Cache: All 4 modules purged successfully.');
+            const latEl = document.getElementById('latency');
+            latEl.style.color = '#ffcc00';
+            setTimeout(() => latEl.style.color = '', 2000);
+        } catch (e) {
+            logEvent(`Cache: Purge failed — ${e.message}`, true);
+        }
+        btn.disabled = false; btn.textContent = 'PURGE';
+    }
+
+    // ── STATS POLL ───────────────────────────────────────────────
+    async function pollStats() {
+        try {
+            const res = await authFetch(`${BACKEND_URL}/api/stats`);
+            if (!res.ok) return;
+            const data = await res.json();
+
+            // Request counts + total
+            const rc = data.requestCounts || {};
+            const total = (rc.satellites||0) + (rc.fireballs||0) + (rc.asteroids||0) + (rc.weather||0);
+            document.getElementById('rc-satellites').textContent = rc.satellites ?? 0;
+            document.getElementById('rc-fireballs').textContent  = rc.fireballs  ?? 0;
+            document.getElementById('rc-asteroids').textContent  = rc.asteroids  ?? 0;
+            document.getElementById('rc-weather').textContent    = rc.weather    ?? 0;
+            document.getElementById('rc-total').textContent      = total;
+
+            // Active sessions
+            document.getElementById('sessionCount').textContent = data.activeSessions ?? '--';
+
+            // Server uptime (used for uptime display)
+            if (data.uptimeMs) serverUptimeMs = data.uptimeMs;
+
+            // Sync lockdown state
+            applyLockdownUI(!!data.lockdownEnabled);
+
+            // Sync kill switches
+            const me = data.moduleEnabled || {};
+            for (const mod of ['satellites','fireballs','asteroids','weather']) {
+                const toggle = document.getElementById(`kill-${mod}`);
+                const dot    = document.getElementById(`dot-${mod}`);
+                if (toggle && !toggle.matches(':active')) toggle.checked = !!me[mod];
+                if (dot) dot.className = `kill-dot ${me[mod] ? 'on' : 'off'}`;
+            }
+        } catch (e) { /* silent */ }
+    }
+
+    // ── SESSION HEARTBEAT ────────────────────────────────────────
+    async function heartbeat() {
+        try {
+            await authFetch(`${BACKEND_URL}/api/session-ping`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionToken })
+            });
+        } catch (e) { /* silent */ }
+    }
+
+    // ── SESSION TIMER (local clock, counts up from login) ────────
+    function updateSessionTimer() {
+        const diff = Math.floor((Date.now() - sessionStart) / 1000);
+        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        const el = document.getElementById('sessionTimer');
+        el.textContent = `${h}:${m}:${s}`;
+        // Turn yellow after 2h as a heads-up
+        el.className = diff > 7200 ? 'stat-value expiring' : 'stat-value';
+        setTimeout(updateSessionTimer, 1000);
+    }
+
+    // ── SERVER UPTIME (from stats uptimeMs) ──────────────────────
+    function updateUptime() {
+        const diff = Math.floor((serverUptimeMs + (Date.now() - sessionStart)) / 1000);
+        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
+        setTimeout(updateUptime, 1000);
+    }
+
+    // ── LOGOUT ───────────────────────────────────────────────────
+    function logout() {
+        revokeSession();
+        sessionStorage.clear();
+        window.location.href = 'landing.html';
+    }
+
+    // ── REVOKE SESSION ON TAB CLOSE (best-effort) ────────────────
+    function revokeSession() {
+        if (!sessionToken) return;
+        const payload = JSON.stringify({ sessionToken });
+        const passKey = getPassKey();
+        // sendBeacon is fire-and-forget, survives tab close
+        navigator.sendBeacon
+            ? navigator.sendBeacon(
+                `${BACKEND_URL}/api/session-revoke`,
+                new Blob([payload], { type: 'application/json' })
+              )
+            : fetch(`${BACKEND_URL}/api/session-revoke`, {
+                method: 'POST', keepalive: true,
+                headers: { 'Content-Type': 'application/json', 'x-controls-auth': passKey },
+                body: payload
+              }).catch(() => {});
+    }
+
+    // ── INIT ─────────────────────────────────────────────────────
+    window.onload = () => {
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isLocal) sessionStorage.setItem('orbitview_auth', 'true');
+        if (sessionStorage.getItem('orbitview_auth') !== 'true') {
+            window.location.href = 'landing.html';
+            return;
+        }
+
+        sessionToken = sessionStorage.getItem('orbitview_session_token');
+        sessionStart = Date.now();
+
+        logEvent('Authorization confirmed. System monitoring online.');
+        runHealthCheck();
+        pollStats();
+        updateSessionTimer();
+        updateUptime();
+
+        // Poll stats every 15s
+        setInterval(pollStats, 15000);
+        // Heartbeat every 30s (keeps 2-min TTL alive)
+        setInterval(heartbeat, 30000);
+    };
+
+    // Fire revoke on tab/window close
+    window.addEventListener('beforeunload', revokeSession);
+    // Also catch visibility change (mobile background)
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') revokeSession();
+    });
+</script>
+</body>
+</html>
