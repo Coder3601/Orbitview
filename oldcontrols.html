@@ -19,15 +19,14 @@
     }
 
     .terminal-container {
-      width:960px; max-width:95vw; height:640px;
+      width:960px; max-width:95vw; height:660px;
       background:rgba(5,5,5,0.95); border:1px solid rgba(255,255,255,0.1);
       display:flex; flex-direction:column; position:relative;
-      box-shadow:0 0 40px rgba(0,0,0,1);
-      transition: border-color .4s;
+      box-shadow:0 0 40px rgba(0,0,0,1); transition:border-color .4s, box-shadow .4s;
     }
     .terminal-container.lockdown-active {
-      border-color: rgba(255,80,60,0.6);
-      box-shadow: 0 0 40px rgba(255,80,60,0.15);
+      border-color:rgba(255,80,60,0.6);
+      box-shadow:0 0 40px rgba(255,80,60,0.15);
     }
 
     /* ── HEADER ── */
@@ -59,12 +58,12 @@
       border-right:1px solid rgba(255,255,255,0.1); padding:20px;
       background:rgba(255,255,255,0.01); overflow-y:auto;
     }
-    .stat-box { margin-bottom:18px; }
-    .stat-label { font-size:8px; color:rgba(255,255,255,0.3); letter-spacing:2px; margin-bottom:5px; text-transform:uppercase; }
+    .stat-box { margin-bottom:16px; }
+    .stat-label { font-size:8px; color:rgba(255,255,255,0.3); letter-spacing:2px; margin-bottom:4px; text-transform:uppercase; }
     .stat-value { font-family:'Orbitron',sans-serif; font-size:12px; color:#33ff88; transition:color 0.4s ease; }
-    .sidebar-divider { border:none; border-top:1px solid rgba(255,255,255,0.07); margin:6px 0 16px; }
+    .stat-sub { font-size:7px; color:rgba(255,255,255,0.2); letter-spacing:1px; margin-top:2px; }
+    .sidebar-divider { border:none; border-top:1px solid rgba(255,255,255,0.07); margin:6px 0 14px; }
 
-    /* session timer */
     #sessionTimer { color:#4488ff; }
     #sessionTimer.expiring { color:#ffcc00; }
 
@@ -73,7 +72,7 @@
     .req-table td { font-size:9px; padding:3px 0; }
     .req-table td:first-child { color:rgba(255,255,255,0.35); letter-spacing:1px; }
     .req-table td:last-child  { text-align:right; font-family:'Orbitron',sans-serif; font-size:10px; color:#4488ff; }
-    .req-table tr.total-row td { border-top:1px solid rgba(255,255,255,0.1); padding-top:6px; margin-top:4px; }
+    .req-table tr.total-row td { border-top:1px solid rgba(255,255,255,0.1); padding-top:6px; }
     .req-table tr.total-row td:first-child { color:rgba(255,255,255,0.6); }
     .req-table tr.total-row td:last-child  { color:#fff; }
 
@@ -120,7 +119,6 @@
     .slider:before { position:absolute; content:""; height:12px; width:12px; left:3px; bottom:3px; background-color:rgba(255,255,255,0.5); transition:.4s; }
     input:checked + .slider { background-color:rgba(51,255,136,0.2); border-color:#33ff88; }
     input:checked + .slider:before { transform:translateX(20px); background-color:#33ff88; }
-    /* red variant for lockdown */
     .switch.danger input:checked + .slider { background-color:rgba(255,80,60,0.25); border-color:#ff503c; }
     .switch.danger input:checked + .slider:before { background-color:#ff503c; }
 
@@ -176,12 +174,17 @@
         <div class="stat-value" id="sessionCount">--</div>
       </div>
       <div class="stat-box">
+        <div class="stat-label">Daily Visits</div>
+        <div class="stat-value" id="dailyVisits">--</div>
+        <div class="stat-sub" id="visitDate">RESETS AT 00:00 UTC</div>
+      </div>
+      <div class="stat-box">
         <div class="stat-label">Session Time</div>
         <div class="stat-value" id="sessionTimer">00:00:00</div>
       </div>
       <div class="stat-box">
         <div class="stat-label">Server Uptime</div>
-        <div class="stat-value" id="uptime">00:00:00</div>
+        <div class="stat-value" id="uptime">--:--:--</div>
       </div>
 
       <hr class="sidebar-divider"/>
@@ -206,7 +209,7 @@
       <div class="control-row lockdown-row" id="lockdownRow">
         <div class="control-info">
           <span class="control-name" style="color:#ff8070;">Public Lockdown</span>
-          <span class="control-desc">Block all public data endpoints. Only authenticated operators bypass. Clients receive 423 Locked.</span>
+          <span class="control-desc">Block all public data endpoints. Authenticated operators bypass automatically. Clients receive 423 Locked.</span>
         </div>
         <label class="switch danger">
           <input type="checkbox" id="lockdownToggle" onchange="toggleLockdown(this.checked)">
@@ -307,9 +310,10 @@
     const BACKEND_URL   = 'https://orbitview-backend.onrender.com';
     const STATUS_COLORS = { OPERATIONAL: '#33ff88', DEGRADED: '#ffcc00', CRITICAL: '#ff503c' };
 
-    let sessionToken   = null;
-    let sessionStart   = Date.now();   // local session clock
-    let serverUptimeMs = 0;            // from last stats poll
+    let sessionToken = null;
+    let sessionStart = Date.now();
+    let serverUptimeAtPoll = 0;   // uptimeMs value from last stats call
+    let pollTime = Date.now();    // when we last received uptimeMs
 
     // ── AUTHENTICATED FETCH ──────────────────────────────────────
     function getPassKey() { return sessionStorage.getItem('orbitview_pass_key') || ''; }
@@ -340,10 +344,9 @@
             if (res.status === 403) throw new Error('Forbidden');
             const data = await res.json();
             applyLockdownUI(data.lockdownEnabled);
-            logEvent(`Lockdown: ${data.lockdownEnabled ? 'ACTIVE — public access blocked' : 'DEACTIVATED — public access restored'}`);
+            logEvent(`Lockdown: ${data.lockdownEnabled ? 'ACTIVE — public access blocked, operator bypass enabled' : 'DEACTIVATED — public access restored'}`);
         } catch (e) {
             logEvent(`Lockdown: Toggle failed — ${e.message}`, true);
-            // revert toggle
             document.getElementById('lockdownToggle').checked = !enabled;
         }
     }
@@ -383,18 +386,18 @@
             const res = await authFetch(`${BACKEND_URL}/api/health${isHighFreq ? '?force=1' : ''}`);
             if (res.status === 403) {
                 logEvent('SYSTEM: Admin key invalid — access restricted.', true);
-                document.getElementById('netStatus').textContent  = 'AUTH_FAILED';
-                document.getElementById('netStatus').style.color  = '#ff503c';
+                document.getElementById('netStatus').textContent = 'AUTH_FAILED';
+                document.getElementById('netStatus').style.color = '#ff503c';
                 return;
             }
             const data  = await res.json();
             const netEl = document.getElementById('netStatus');
-            netEl.textContent  = data.status;
-            netEl.style.color  = STATUS_COLORS[data.status] || '#fff';
+            netEl.textContent = data.status;
+            netEl.style.color = STATUS_COLORS[data.status] || '#fff';
             document.getElementById('activeCount').textContent = `0${data.activeModules} / 0${data.totalModules}`;
             document.getElementById('latency').textContent     = `${Date.now() - start}ms`;
             if (data.details) data.details.forEach(m => logEvent(`Module ${m.module}: ${m.status}`, m.status === 'OFFLINE'));
-            logEvent(`Diagnostic complete — ${data.activeModules}/${data.totalModules} modules active${isHighFreq ? ' (HIGH_FREQ)' : ''}.`);
+            logEvent(`Diagnostic complete — ${data.activeModules}/${data.totalModules} active${isHighFreq ? ' (HIGH_FREQ)' : ''}.`);
         } catch (e) {
             document.getElementById('netStatus').textContent = 'CONNECTION_LOST';
             document.getElementById('netStatus').style.color = '#ff503c';
@@ -439,7 +442,7 @@
             const data = await res.json();
 
             // Request counts + total
-            const rc = data.requestCounts || {};
+            const rc    = data.requestCounts || {};
             const total = (rc.satellites||0) + (rc.fireballs||0) + (rc.asteroids||0) + (rc.weather||0);
             document.getElementById('rc-satellites').textContent = rc.satellites ?? 0;
             document.getElementById('rc-fireballs').textContent  = rc.fireballs  ?? 0;
@@ -450,8 +453,18 @@
             // Active sessions
             document.getElementById('sessionCount').textContent = data.activeSessions ?? '--';
 
-            // Server uptime (used for uptime display)
-            if (data.uptimeMs) serverUptimeMs = data.uptimeMs;
+            // Daily visits
+            if (data.dailyVisits !== undefined) {
+                document.getElementById('dailyVisits').textContent = data.dailyVisits;
+                document.getElementById('visitDate').textContent   =
+                    `TODAY · ${data.visitDate || ''} UTC`;
+            }
+
+            // Server uptime — store snapshot so local ticker can extrapolate
+            if (data.uptimeMs) {
+                serverUptimeAtPoll = data.uptimeMs;
+                pollTime = Date.now();
+            }
 
             // Sync lockdown state
             applyLockdownUI(!!data.lockdownEnabled);
@@ -478,7 +491,7 @@
         } catch (e) { /* silent */ }
     }
 
-    // ── SESSION TIMER (local clock, counts up from login) ────────
+    // ── SESSION TIMER ────────────────────────────────────────────
     function updateSessionTimer() {
         const diff = Math.floor((Date.now() - sessionStart) / 1000);
         const h = String(Math.floor(diff / 3600)).padStart(2, '0');
@@ -486,14 +499,14 @@
         const s = String(diff % 60).padStart(2, '0');
         const el = document.getElementById('sessionTimer');
         el.textContent = `${h}:${m}:${s}`;
-        // Turn yellow after 2h as a heads-up
-        el.className = diff > 7200 ? 'stat-value expiring' : 'stat-value';
+        el.className   = `stat-value${diff > 7200 ? ' expiring' : ''}`;
         setTimeout(updateSessionTimer, 1000);
     }
 
-    // ── SERVER UPTIME (from stats uptimeMs) ──────────────────────
+    // ── SERVER UPTIME (extrapolated from last poll) ───────────────
     function updateUptime() {
-        const diff = Math.floor((serverUptimeMs + (Date.now() - sessionStart)) / 1000);
+        const elapsed = serverUptimeAtPoll + (Date.now() - pollTime);
+        const diff    = Math.floor(elapsed / 1000);
         const h = String(Math.floor(diff / 3600)).padStart(2, '0');
         const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
         const s = String(diff % 60).padStart(2, '0');
@@ -501,29 +514,30 @@
         setTimeout(updateUptime, 1000);
     }
 
+    // ── REVOKE SESSION ON TAB CLOSE ──────────────────────────────
+    function revokeSession() {
+        if (!sessionToken) return;
+        const payload = JSON.stringify({ sessionToken });
+        const passKey = getPassKey();
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(
+                `${BACKEND_URL}/api/session-revoke`,
+                new Blob([payload], { type: 'application/json' })
+            );
+        } else {
+            fetch(`${BACKEND_URL}/api/session-revoke`, {
+                method: 'POST', keepalive: true,
+                headers: { 'Content-Type': 'application/json', 'x-controls-auth': passKey },
+                body: payload
+            }).catch(() => {});
+        }
+    }
+
     // ── LOGOUT ───────────────────────────────────────────────────
     function logout() {
         revokeSession();
         sessionStorage.clear();
         window.location.href = 'landing.html';
-    }
-
-    // ── REVOKE SESSION ON TAB CLOSE (best-effort) ────────────────
-    function revokeSession() {
-        if (!sessionToken) return;
-        const payload = JSON.stringify({ sessionToken });
-        const passKey = getPassKey();
-        // sendBeacon is fire-and-forget, survives tab close
-        navigator.sendBeacon
-            ? navigator.sendBeacon(
-                `${BACKEND_URL}/api/session-revoke`,
-                new Blob([payload], { type: 'application/json' })
-              )
-            : fetch(`${BACKEND_URL}/api/session-revoke`, {
-                method: 'POST', keepalive: true,
-                headers: { 'Content-Type': 'application/json', 'x-controls-auth': passKey },
-                body: payload
-              }).catch(() => {});
     }
 
     // ── INIT ─────────────────────────────────────────────────────
@@ -544,15 +558,11 @@
         updateSessionTimer();
         updateUptime();
 
-        // Poll stats every 15s
-        setInterval(pollStats, 15000);
-        // Heartbeat every 30s (keeps 2-min TTL alive)
-        setInterval(heartbeat, 30000);
+        setInterval(pollStats,    15000);  // refresh stats every 15s
+        setInterval(heartbeat,    30000);  // keep session alive every 30s
     };
 
-    // Fire revoke on tab/window close
     window.addEventListener('beforeunload', revokeSession);
-    // Also catch visibility change (mobile background)
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') revokeSession();
     });
