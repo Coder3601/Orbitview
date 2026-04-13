@@ -178,6 +178,12 @@
         <div class="stat-value" id="dailyVisits">--</div>
         <div class="stat-sub" id="visitDate">RESETS AT 00:00 UTC</div>
       </div>
+      <!-- ++ LIFETIME VISITS ++ -->
+      <div class="stat-box">
+        <div class="stat-label">Lifetime Visits</div>
+        <div class="stat-value" id="lifetimeVisits">--</div>
+        <div class="stat-sub">UNIQUE IPS · ALL TIME</div>
+      </div>
       <div class="stat-box">
         <div class="stat-label">Session Time</div>
         <div class="stat-value" id="sessionTimer">00:00:00</div>
@@ -312,8 +318,8 @@
 
     let sessionToken = null;
     let sessionStart = Date.now();
-    let serverUptimeAtPoll = 0;   // uptimeMs value from last stats call
-    let pollTime = Date.now();    // when we last received uptimeMs
+    let serverUptimeAtPoll = 0;
+    let pollTime = Date.now();
 
     // ── AUTHENTICATED FETCH ──────────────────────────────────────
     function getPassKey() { return sessionStorage.getItem('orbitview_pass_key') || ''; }
@@ -460,7 +466,12 @@
                     `TODAY · ${data.visitDate || ''} UTC`;
             }
 
-            // Server uptime — store snapshot so local ticker can extrapolate
+            // ++ Lifetime visits ++
+            if (data.lifetimeVisits !== undefined) {
+                document.getElementById('lifetimeVisits').textContent = data.lifetimeVisits;
+            }
+
+            // Server uptime
             if (data.uptimeMs) {
                 serverUptimeAtPoll = data.uptimeMs;
                 pollTime = Date.now();
@@ -558,8 +569,8 @@
         updateSessionTimer();
         updateUptime();
 
-        setInterval(pollStats,    15000);  // refresh stats every 15s
-        setInterval(heartbeat,    30000);  // keep session alive every 30s
+        setInterval(pollStats,    15000);
+        setInterval(heartbeat,    30000);
     };
 
     window.addEventListener('beforeunload', revokeSession);
