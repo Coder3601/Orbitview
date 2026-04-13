@@ -155,6 +155,12 @@ const CESIUM_TOKEN='YOUR_CESIUM_ION_TOKEN_HERE';
 
 let viewer=null,astMap={},selectedId=null;
 
+// ── LOCKDOWN BYPASS ───────────────────────────────────────────────────────────
+function getAuthHeaders(){
+  const key=sessionStorage.getItem('orbitview_pass_key');
+  return key?{'x-controls-auth':key}:{};
+}
+
 setInterval(()=>{document.getElementById('live-clock').textContent=new Date().toISOString().substr(11,8);},1000);
 
 function getBand(band,hazardous){
@@ -252,17 +258,18 @@ function render(asteroids){
 async function fetchAndRender(){
   const statusEl=document.getElementById('status-mode');
   try{
-    const res=await fetch(`${API}/api/asteroids?t=${Date.now()}`);
+    const res=await fetch(`${API}/api/asteroids?t=${Date.now()}`,{headers:getAuthHeaders()});
+    if(res.status===423)throw new Error('LOCKDOWN');
     if(!res.ok)throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
     if(!data.asteroids?.length)throw new Error('Empty response');
     render(data.asteroids);
     statusEl.textContent=`LIVE · ${data.count} NEOs`;statusEl.className='s-live';
-    
-    // Success: Hide Loader
     document.getElementById('loader').style.display='none';
   }catch(err){
-    console.error('Fetch failed:',err.message);statusEl.textContent='ERROR';statusEl.className='s-error';
+    console.error('Fetch failed:',err.message);
+    statusEl.textContent=err.message==='LOCKDOWN'?'LOCKED':'ERROR';
+    statusEl.className='s-error';
     document.getElementById('loader').style.display='none';
   }
 }
