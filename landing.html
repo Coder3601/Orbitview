@@ -282,7 +282,7 @@
 <script>
   // FIX 1: Point to your Render URL
   const BACKEND_URL = 'https://orbitview-backend.onrender.com'; 
-
+  fetch('https://orbitview-backend.onrender.com/api/visit', { method: 'POST' });
   const secretBtn    = document.getElementById('secretBtn');
   const overlay      = document.getElementById('modalOverlay');
   const terminal     = document.getElementById('terminal');
