@@ -94,6 +94,133 @@ document.addEventListener('DOMContentLoaded', applyAesthetics);
     .s-error { color:#ff3333; font-weight:bold; }
     .s-dim   { color:#666; }
   </style>
+  <style>
+    @media (max-width: 768px) {
+ 
+  /* ── HEADER AREA ─────────────────────────────────────────────── */
+  #home-btn {
+    top: 12px; left: 12px;
+    padding: 6px 10px; font-size: 6px; letter-spacing: 2px;
+  }
+  #brand {
+    top: 14px; left: 90px;
+  }
+  #brand h1 {
+    font-size: 13px; letter-spacing: 2px;
+  }
+  #brand span {
+    font-size: 6px; letter-spacing: 1px;
+  }
+ 
+  /* ── HIDE DESKTOP-ONLY ELEMENTS ──────────────────────────────── */
+  #legend,
+  #live-clock,
+  #stale-banner { /* stale-banner only exists on w.html, harmless on others */
+    display: none !important;
+  }
+ 
+  /* ── SIDEBAR → BOTTOM SHEET ──────────────────────────────────── */
+  #sidebar {
+    position: fixed;
+    top: auto;
+    bottom: 0; left: 0; right: 0;
+    width: 100%;
+    height: 42vh;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    border-radius: 16px 16px 0 0;
+    padding: 14px 16px 20px;
+    z-index: 150;
+    /* slide-up feel */
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+  }
+ 
+  /* drag handle visual above the sheet */
+  #sidebar::before {
+    content: '';
+    display: block;
+    width: 36px; height: 3px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+  }
+ 
+  .sidebar-top {
+    margin-bottom: 8px;
+  }
+ 
+  /* ── DATA TERMINAL → FULL-WIDTH TOP CARD ─────────────────────── */
+  #data-terminal {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    width: 100%;
+    max-height: 58vh;
+    overflow-y: auto;
+    transform: none;
+    border-radius: 0 0 16px 16px;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    padding: 16px 18px 18px;
+    z-index: 200;
+    /* slide down from top */
+    animation: slideDown 0.3s ease-out !important;
+  }
+ 
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+ 
+  /* hide sidebar when terminal is open — toggled via JS */
+  #sidebar.hidden-mobile {
+    transform: translateY(100%);
+  }
+ 
+  /* ── TERMINAL CONTENT ────────────────────────────────────────── */
+  .terminal-val {
+    font-size: 14px !important;
+    margin-bottom: 12px;
+  }
+  .terminal-val.sm {
+    font-size: 11px !important;
+  }
+  .terminal-header {
+    font-size: 8px;
+  }
+  .action-btn {
+    padding: 10px;
+    font-size: 8px;
+  }
+ 
+  /* ── SIDEBAR CONTENT ─────────────────────────────────────────── */
+  .sat-card {
+    padding: 9px 8px;
+  }
+  .card-name {
+    font-size: 9px;
+  }
+  .card-meta {
+    font-size: 6px;
+  }
+  #search-input {
+    font-size: 10px;
+    padding: 8px 10px 8px 28px;
+  }
+  #failsafe-status {
+    font-size: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+ 
+  /* ── CESIUM CONTAINER ────────────────────────────────────────── */
+  /* Leave room for the bottom sheet */
+  #cesiumContainer {
+    height: calc(100vh - 42vh);
+  }
+}
+  </style>
 </head>
 <body>
 
