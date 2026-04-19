@@ -138,6 +138,104 @@
       padding:8px 18px; font-size:9px; overflow-y:auto; flex-shrink:0;
     }
     .console-box div { padding:1px 0; }
+
+    @media (max-width: 768px) {
+ 
+  body {
+    align-items: flex-start;
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+  }
+ 
+  .terminal-container {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 100vh;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+ 
+  /* Stack sidebar above main panel */
+  .term-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    overflow: visible;
+  }
+ 
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    overflow-y: visible; /* let the page scroll instead */
+    padding: 16px;
+  }
+ 
+  /* Two-column grid for the stat boxes so they don't stack too tall */
+  .sidebar > .stat-box {
+    display: inline-block;
+    width: calc(50% - 8px);
+    vertical-align: top;
+    margin-right: 8px;
+    margin-bottom: 14px;
+  }
+  /* Full-width for the request table section */
+  .sidebar > .stat-label,
+  .sidebar > .req-table,
+  .sidebar > .sidebar-divider {
+    display: block;
+    width: 100%;
+  }
+ 
+  .main-panel {
+    padding: 16px;
+    overflow: visible;
+  }
+ 
+  /* Header adjustments */
+  .term-title {
+    font-size: 7px;
+    letter-spacing: 2px;
+  }
+  .exit-btn {
+    font-size: 7px;
+    padding: 4px 8px;
+  }
+  .lockdown-badge {
+    font-size: 6px;
+    letter-spacing: 2px;
+    padding: 3px 6px;
+  }
+ 
+  /* Control rows — stack label and control vertically on very small screens */
+  .control-row {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+  .control-name {
+    font-size: 10px;
+  }
+  .control-desc {
+    font-size: 7px;
+  }
+  .kill-name {
+    font-size: 9px;
+  }
+ 
+  /* Console */
+  .console-box {
+    height: 70px;
+    font-size: 8px;
+  }
+ 
+  /* Section title */
+  .section-title {
+    font-size: 9px;
+    letter-spacing: 2px;
+  }
+}
   </style>
 </head>
 <body>
